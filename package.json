@@ -1,0 +1,37 @@
+{
+  "name": "cliclock",
+  "version": "1.0.0",
+  "description": "Clock, Timer, StopWatch in Command Line",
+  "main": "./index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "bin": {
+    "c": "index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/s54a/CliClock.git"
+  },
+  "keywords": [
+    "Clock",
+    "CLI Clock",
+    "Clock in CLI",
+    "Timer in CLI",
+    "StopWatch in CLI",
+    "Clock in Command Line",
+    "Timer in Command Line",
+    "StopWatch in Command Line",
+    "See Time from  Command Line",
+    "Set Timer from  Command Line",
+    "Start StopWatch from  Command Line",
+    ""
+  ],
+  "author": "Sooraj Gupta",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/s54a/CliClock/issues"
+  },
+  "homepage": "https://github.com/s54a/CliClock#readme"
+}
