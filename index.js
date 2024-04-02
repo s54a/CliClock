@@ -71,34 +71,37 @@ if (!condition) {
   const displayCountdown = () => {
     const remainingTime = endTime - Date.now();
     const secondsRemaining = Math.ceil(remainingTime / 1000);
-    console.clear();
-    console.log(`
-    Timer set for ${time} ${unit}
-    Time remaining: ${secondsRemaining} seconds
-    `);
+    if (secondsRemaining <= 0) {
+      console.clear();
+      console.log(`
+Timer set for ${time} ${unit}
+Time remaining: 0 seconds
+      `);
+      console.log("Timer ended!");
+      clearInterval(countdownInterval); // Stop the countdown
+      const icon = path.join(__dirname, "timer-svgrepo-com.png");
+      const soundPath = path.join(__dirname, "sound.mp3");
+      // Play sound when the timer expires
+      notifier.notify({
+        title: "Timer Expired",
+        message: `Timer set for ${time}${unit} has expired.`,
+        // sound: true, // Enable sound
+        wait: true, // Wait for notification to be dismissed
+        sound: soundPath, // Path to custom sound file
+        icon: icon, // Path to icon file
+        contentImage: icon, // Same as icon
+      });
+    } else {
+      console.clear();
+      console.log(`
+      Timer set for ${time} ${unit}
+      Time remaining: ${secondsRemaining} seconds
+      `);
+    }
   };
 
   // Display countdown every second
   const countdownInterval = setInterval(displayCountdown, 100);
-
-  // setTimeout to trigger an action after the specified time interval
-  setTimeout(() => {
-    clearInterval(countdownInterval); // Stop the countdown
-    console.log("Timer expired!");
-
-    const icon = path.join(__dirname, "timer-svgrepo-com.png");
-    const soundPath = path.join(__dirname, "sound.mp3");
-    // Play sound when the timer expires
-    notifier.notify({
-      title: "Timer Expired",
-      message: `Timer set for ${time}${unit} has expired.`,
-      // sound: true, // Enable sound
-      wait: true, // Wait for notification to be dismissed
-      sound: soundPath, // Path to custom sound file
-      icon: icon, // Path to icon file
-      contentImage: icon, // Same as icon
-    });
-  }, valuePassed);
 } else if (condition === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
