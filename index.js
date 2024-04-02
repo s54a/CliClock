@@ -1,13 +1,11 @@
 #!/usr/bin/env node
-
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import { playAudioFile } from "audic";
+import notifier from "node-notifier";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-
 // Command line arguments
 const [, , condition, value] = process.argv;
 
@@ -25,41 +23,40 @@ if (!condition) {
   };
   // Calling displayTime() initially and then updating every millisecond
   setInterval(displayTime, 1000);
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
-  // Code for Timer
 } else if (condition === "-t") {
   if (!value) {
     console.error("Please Enter a Value");
     process.exit(1);
   }
 
-  const [time, unit] = value.split(" ");
+  // Extracting time and unit from value
+  const time = parseInt(value);
+  const unitMatch = value.match(/[a-zA-Z]+/);
+  const unit = unitMatch ? unitMatch[0] : null;
 
-  if (isNaN(parseInt(time))) {
+  if (isNaN(time)) {
     console.error("Passed Value must be a number.");
     process.exit(1);
   }
+
+  if (!unit) {
+    console.error("Invalid time format.");
+    process.exit(1);
+  }
+
   let valuePassed;
   switch (unit) {
     case "m":
-      valuePassed = parseInt(time) * 60 * 1000; // Convert minutes to milliseconds
+      valuePassed = time * 60 * 1000; // Convert minutes to milliseconds
       break;
     case "s":
-      valuePassed = parseInt(time) * 1000; // Convert seconds to milliseconds
+      valuePassed = time * 1000; // Convert seconds to milliseconds
       break;
     case "h":
-      valuePassed = parseInt(time) * 60 * 60 * 1000; // Convert hours to milliseconds
+      valuePassed = time * 60 * 60 * 1000; // Convert hours to milliseconds
       break;
     case "ms":
-      valuePassed = parseInt(time); // Milliseconds
+      valuePassed = time; // Milliseconds
       break;
     default:
       console.error("Invalid time unit.");
@@ -89,20 +86,19 @@ if (!condition) {
     clearInterval(countdownInterval); // Stop the countdown
     console.log("Timer expired!");
 
+    const icon = path.join(__dirname, "timer-svgrepo-com.png");
+    const soundPath = path.join(__dirname, "sound.mp3");
     // Play sound when the timer expires
-    playAudioFile("sound.mp3");
+    notifier.notify({
+      title: "Timer Expired",
+      message: `Timer set for ${time}${unit} has expired.`,
+      // sound: true, // Enable sound
+      wait: true, // Wait for notification to be dismissed
+      sound: soundPath, // Path to custom sound file
+      icon: icon, // Path to icon file
+      contentImage: icon, // Same as icon
+    });
   }, valuePassed);
-
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
-  // Code for Stopwatch
 } else if (condition === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
@@ -125,16 +121,6 @@ if (!condition) {
 
   // Display stopwatch every second
   const stopwatchInterval = setInterval(displayStopwatch, 1000);
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
-  // Code for Help
 } else if (condition === "-h") {
   if (value) {
     console.error("You don't have to pass a value with this flag");

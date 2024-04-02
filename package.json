@@ -35,7 +35,6 @@
   },
   "homepage": "https://github.com/s54a/CliClock#readme",
   "dependencies": {
-    "audic": "^3.0.2",
-    "play-sound": "^1.1.6"
+    "node-notifier": "^10.0.1"
   }
 }
