@@ -68,10 +68,12 @@ if (!condition) {
       console.error("Invalid time unit.");
       process.exit(1);
   }
+
   console.log(`Timer set for ${time} ${unit}`);
 
   // Calculate end time for countdown
   let endTime = Date.now() + valuePassed;
+
   // Function to display countdown
   const displayCountdown = () => {
     const remainingTime = endTime - Date.now();
@@ -82,7 +84,7 @@ if (!condition) {
 Timer set for ${time} ${unit}
 Time remaining: 0 seconds
       `);
-      console.log("Timer ended!");
+      console.log("Timer ended!\n");
       clearInterval(countdownInterval); // Stop the countdown
       const icon = path.join(__dirname, "timer-svgrepo-com.png");
       const soundPath = path.join(__dirname, "sound.mp3");
@@ -96,7 +98,7 @@ Time remaining: 0 seconds
         icon: icon, // Path to icon file
         contentImage: icon, // Same as icon
       });
-      rl.question("Snooze duration (e.g. 10s, 5m): ", (answer) => {
+      const handleSnoozeInput = (answer) => {
         const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
         if (snoozeMatch) {
           const snoozeTime = parseInt(snoozeMatch[1]);
@@ -114,12 +116,20 @@ Time remaining: 0 seconds
               break;
           }
           console.log(`Snoozing for ${snoozeTime} ${snoozeUnit}`);
-          endTime = Date.now() + snoozeMilliseconds; // Update end time for snooze
+          setTimeout(() => {
+            // Restart the timer with snooze duration
+            endTime += snoozeMilliseconds; // Update end time for snooze
+            console.log("Timer restarted!"); // Add message indicating timer restart
+            displayCountdown(); // Update countdown display after restart
+            rl.close();
+          }, snoozeMilliseconds);
         } else {
           console.log("Invalid snooze duration format. Snooze not applied.");
+          rl.close();
         }
-        rl.close();
-      });
+      };
+
+      rl.question("Snooze Timer for: ", handleSnoozeInput);
     } else {
       console.clear();
       console.log(`
