@@ -45,7 +45,7 @@ if (!condition) {
   }
 
   let valuePassed;
-  switch (unit) {
+  switch (unit.toLocaleLowerCase()) {
     case "m":
       valuePassed = time * 60 * 1000; // Convert minutes to milliseconds
       break;
