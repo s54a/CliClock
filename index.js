@@ -3,11 +3,17 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import notifier from "node-notifier";
+import readLine from "readline";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Command line arguments
 const [, , condition, value] = process.argv;
+
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout,
+});
 
 if (!condition) {
   const displayTime = () => {
@@ -66,7 +72,6 @@ if (!condition) {
 
   // Calculate end time for countdown
   const endTime = Date.now() + valuePassed;
-
   // Function to display countdown
   const displayCountdown = () => {
     const remainingTime = endTime - Date.now();
@@ -91,6 +96,30 @@ Time remaining: 0 seconds
         icon: icon, // Path to icon file
         contentImage: icon, // Same as icon
       });
+      rl.question("Snooze duration (e.g. 10s, 5m): ", (answer) => {
+        const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
+        if (snoozeMatch) {
+          const snoozeTime = parseInt(snoozeMatch[1]);
+          const snoozeUnit = snoozeMatch[2].toLowerCase();
+          let snoozeMilliseconds = 0;
+          switch (snoozeUnit) {
+            case "s":
+              snoozeMilliseconds = snoozeTime * 1000;
+              break;
+            case "m":
+              snoozeMilliseconds = snoozeTime * 60 * 1000;
+              break;
+            case "h":
+              snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
+              break;
+          }
+          console.log(`Snoozing for ${snoozeTime} ${snoozeUnit}`);
+          endTime = Date.now() + snoozeMilliseconds; // Update end time for snooze
+        } else {
+          console.log("Invalid snooze duration format. Snooze not applied.");
+        }
+        rl.close();
+      });
     } else {
       console.clear();
       console.log(`
@@ -101,7 +130,15 @@ Time remaining: 0 seconds
   };
 
   // Display countdown every second
-  const countdownInterval = setInterval(displayCountdown, 100);
+  // const countdownInterval = setInterval(displayCountdown, 100);
+  // Function to start the timer
+  const startTimer = (duration) => {
+    endTime = Date.now() + duration;
+    countdownInterval = setInterval(displayCountdown, 100);
+  };
+
+  // Initial call to start the timer
+  startTimer(valuePassed);
 } else if (condition === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
