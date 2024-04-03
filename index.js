@@ -3,7 +3,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import notifier from "node-notifier";
-import readLine from "readline";
+import readline from "readline";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -71,7 +71,7 @@ if (!condition) {
   console.log(`Timer set for ${time} ${unit}`);
 
   // Calculate end time for countdown
-  const endTime = Date.now() + valuePassed;
+  let endTime = Date.now() + valuePassed;
   // Function to display countdown
   const displayCountdown = () => {
     const remainingTime = endTime - Date.now();
@@ -130,15 +130,7 @@ Time remaining: 0 seconds
   };
 
   // Display countdown every second
-  // const countdownInterval = setInterval(displayCountdown, 100);
-  // Function to start the timer
-  const startTimer = (duration) => {
-    endTime = Date.now() + duration;
-    countdownInterval = setInterval(displayCountdown, 100);
-  };
-
-  // Initial call to start the timer
-  startTimer(valuePassed);
+  const countdownInterval = setInterval(displayCountdown, 100);
 } else if (condition === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
