@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
@@ -68,79 +69,82 @@ if (!condition) {
       console.error("Invalid time unit.");
       process.exit(1);
   }
-
   console.log(`Timer set for ${time} ${unit}`);
 
-  // Calculate end time for countdown
-  let endTime = Date.now() + valuePassed;
+  const startTimer = (duration) => {
+    let endTime = Date.now() + duration;
 
-  // Function to display countdown
-  const displayCountdown = () => {
-    const remainingTime = endTime - Date.now();
-    const secondsRemaining = Math.ceil(remainingTime / 1000);
-    if (secondsRemaining <= 0) {
-      console.clear();
-      console.log(`
+    const displayCountdown = () => {
+      const remainingTime = endTime - Date.now();
+      const secondsRemaining = Math.ceil(remainingTime / 1000);
+
+      if (secondsRemaining <= 0) {
+        console.clear();
+        console.log(`
 Timer set for ${time} ${unit}
 Time remaining: 0 seconds
       `);
-      console.log("Timer ended!\n");
-      clearInterval(countdownInterval); // Stop the countdown
-      const icon = path.join(__dirname, "timer-svgrepo-com.png");
-      const soundPath = path.join(__dirname, "sound.mp3");
-      // Play sound when the timer expires
-      notifier.notify({
-        title: "Timer Expired",
-        message: `Timer set for ${time}${unit} has expired.`,
-        // sound: true, // Enable sound
-        wait: true, // Wait for notification to be dismissed
-        sound: soundPath, // Path to custom sound file
-        icon: icon, // Path to icon file
-        contentImage: icon, // Same as icon
-      });
-      const handleSnoozeInput = (answer) => {
-        const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
-        if (snoozeMatch) {
-          const snoozeTime = parseInt(snoozeMatch[1]);
-          const snoozeUnit = snoozeMatch[2].toLowerCase();
-          let snoozeMilliseconds = 0;
-          switch (snoozeUnit) {
-            case "s":
-              snoozeMilliseconds = snoozeTime * 1000;
-              break;
-            case "m":
-              snoozeMilliseconds = snoozeTime * 60 * 1000;
-              break;
-            case "h":
-              snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
-              break;
-          }
-          console.log(`Snoozing for ${snoozeTime} ${snoozeUnit}`);
-          setTimeout(() => {
-            // Restart the timer with snooze duration
-            endTime += snoozeMilliseconds; // Update end time for snooze
-            console.log("Timer restarted!"); // Add message indicating timer restart
-            displayCountdown(); // Update countdown display after restart
-            rl.close();
-          }, snoozeMilliseconds);
-        } else {
-          console.log("Invalid snooze duration format. Snooze not applied.");
-          rl.close();
-        }
-      };
+        console.log("Timer ended!");
 
-      rl.question("Snooze Timer for: ", handleSnoozeInput);
-    } else {
-      console.clear();
-      console.log(`
-      Timer set for ${time} ${unit}
-      Time remaining: ${secondsRemaining} seconds
+        const icon = path.join(__dirname, "timer-svgrepo-com.png");
+        const soundPath = path.join(__dirname, "sound.mp3");
+        // Play sound when the timer expires
+        notifier.notify({
+          title: "Timer Expired",
+          message: `Timer set for ${time}${unit} has expired.`,
+          // sound: true, // Enable sound
+          wait: true, // Wait for notification to be dismissed
+          sound: soundPath, // Path to custom sound file
+          icon: icon, // Path to icon file
+          contentImage: icon, // Same as icon
+        });
+
+        const handleSnoozeInput = (answer) => {
+          const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
+          if (snoozeMatch) {
+            const snoozeTime = parseInt(snoozeMatch[1]);
+            const snoozeUnit = snoozeMatch[2].toLowerCase();
+            let snoozeMilliseconds = 0;
+            switch (snoozeUnit) {
+              case "s":
+                snoozeMilliseconds = snoozeTime * 1000;
+                break;
+              case "m":
+                snoozeMilliseconds = snoozeTime * 60 * 1000;
+                break;
+              case "h":
+                snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
+                break;
+            }
+            console.log(`Snoozing for ${snoozeTime} ${snoozeUnit}`);
+            setTimeout(() => {
+              // Restart the timer with snooze duration
+              endTime += snoozeMilliseconds; // Update end time for snooze
+              console.log("Timer restarted!"); // Add message indicating timer restart
+              displayCountdown(); // Update countdown display after restart
+              rl.close();
+            }, snoozeMilliseconds);
+          } else {
+            console.log("Invalid snooze duration format. Snooze not applied.");
+            rl.close();
+          }
+        };
+
+        rl.question("Snooze Timer for: ", handleSnoozeInput);
+      } else {
+        console.clear();
+        console.log(`
+Timer set for ${time} ${unit}
+Time remaining: ${secondsRemaining} seconds
       `);
-    }
+        setTimeout(displayCountdown, 1000); // Update countdown every second
+      }
+    };
+
+    displayCountdown(); // Start the countdown
   };
 
-  // Display countdown every second
-  const countdownInterval = setInterval(displayCountdown, 100);
+  startTimer(valuePassed); // Start the timer
 } else if (condition === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
