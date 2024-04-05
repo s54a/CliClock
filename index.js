@@ -5,6 +5,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import notifier from "node-notifier";
 import readline from "readline";
+import { exec } from "child_process";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -51,34 +52,42 @@ if (!condition) {
     process.exit(1);
   }
 
-  let valuePassed;
+  let timeValuePassed;
   switch (unit.toLocaleLowerCase()) {
     case "m":
-      valuePassed = time * 60 * 1000; // Convert minutes to milliseconds
+      timeValuePassed = time * 60 * 1000; // Convert minutes to milliseconds
       break;
     case "s":
-      valuePassed = time * 1000; // Convert seconds to milliseconds
+      timeValuePassed = time * 1000; // Convert seconds to milliseconds
       break;
     case "h":
-      valuePassed = time * 60 * 60 * 1000; // Convert hours to milliseconds
+      timeValuePassed = time * 60 * 60 * 1000; // Convert hours to milliseconds
       break;
     case "ms":
-      valuePassed = time; // Milliseconds
+      timeValuePassed = time; // Milliseconds
       break;
     default:
       console.error("Invalid time unit.");
       process.exit(1);
   }
-  console.log(`Timer set for ${time} ${unit}`);
 
-  const startTimer = (duration) => {
-    let endTime = Date.now() + duration;
+  let displayCountdownInterval;
 
+  const startTimer = () => {
+    const endTime = Date.now() + timeValuePassed;
     const displayCountdown = () => {
       const remainingTime = endTime - Date.now();
       const secondsRemaining = Math.ceil(remainingTime / 1000);
 
-      if (secondsRemaining <= 0) {
+      console.clear();
+      console.log(`
+Timer set for ${time} ${unit}
+Time remaining:  ${secondsRemaining} Seconds
+      `);
+
+      if (secondsRemaining > 0) {
+        displayCountdownInterval = setInterval(displayCountdown, 500);
+      } else if (secondsRemaining <= 0) {
         console.clear();
         console.log(`
 Timer set for ${time} ${unit}
@@ -98,7 +107,7 @@ Time remaining: 0 seconds
           icon: icon, // Path to icon file
           contentImage: icon, // Same as icon
         });
-
+        // clearInterval(displayCountdownInterval);
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
           if (snoozeMatch) {
@@ -116,14 +125,18 @@ Time remaining: 0 seconds
                 snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
                 break;
             }
-            console.log(`Snoozing for ${snoozeTime} ${snoozeUnit}`);
-            setTimeout(() => {
-              // Restart the timer with snooze duration
-              endTime += snoozeMilliseconds; // Update end time for snooze
-              console.log("Timer restarted!"); // Add message indicating timer restart
-              displayCountdown(); // Update countdown display after restart
+            console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
+            // Execute the command to set a new timer
+            const command = `c -t ${snoozeTime}${snoozeUnit}`;
+            exec(command, (error, stdout, stderr) => {
+              if (error) {
+                console.error(`Error executing command: ${error}`);
+                return;
+              }
+              console.log(stdout);
               rl.close();
-            }, snoozeMilliseconds);
+            });
+            rl.close();
           } else {
             console.log("Invalid snooze duration format. Snooze not applied.");
             rl.close();
@@ -131,30 +144,28 @@ Time remaining: 0 seconds
         };
 
         rl.question("Snooze Timer for: ", handleSnoozeInput);
-      } else {
-        console.clear();
-        console.log(`
-Timer set for ${time} ${unit}
-Time remaining: ${secondsRemaining} seconds
-      `);
-        setTimeout(displayCountdown, 1000); // Update countdown every second
+        rl.close();
       }
     };
-
-    displayCountdown(); // Start the countdown
+    displayCountdown();
   };
 
-  startTimer(valuePassed); // Start the timer
+  startTimer();
 } else if (condition === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
     process.exit(1);
   }
+
   // Stopwatch functionality
   let startTime = Date.now();
+  let pausedTime = 0;
+  let stopwatchInterval;
+  let isPaused = false;
+  let lapCount = 0;
 
   const displayStopwatch = () => {
-    const elapsedTime = Date.now() - startTime;
+    const elapsedTime = isPaused ? pausedTime : Date.now() - startTime;
     const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
     const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
@@ -165,8 +176,40 @@ Time remaining: ${secondsRemaining} seconds
     );
   };
 
-  // Display stopwatch every second
-  const stopwatchInterval = setInterval(displayStopwatch, 1000);
+  const stopStopwatch = () => {
+    clearInterval(stopwatchInterval);
+    process.stdin.removeListener("keypress", stopHandler);
+    console.log("Stopwatch stopped.");
+    process.exit(1);
+  };
+
+  const stopHandler = (str, key) => {
+    if (key.name === "return") {
+      if (isPaused) {
+        // Resume stopwatch
+        startTime = Date.now() - pausedTime;
+        pausedTime = 0;
+        isPaused = false;
+        console.log(`Resumed stopwatch at lap ${++lapCount}`);
+        stopwatchInterval = setInterval(displayStopwatch, 1000);
+      } else {
+        // Pause stopwatch
+        clearInterval(stopwatchInterval);
+        pausedTime = Date.now() - startTime;
+        isPaused = true;
+        console.log(`Paused stopwatch at lap ${++lapCount}`);
+      }
+    }
+  };
+
+  // Start displaying stopwatch every second
+  stopwatchInterval = setInterval(displayStopwatch, 1000);
+
+  // Listen for "keypress" event on stdin
+  process.stdin.setEncoding("utf8");
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.on("keypress", stopHandler);
 } else if (condition === "-h") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
