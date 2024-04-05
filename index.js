@@ -159,14 +159,9 @@ Time remaining: 0 seconds
   // Stopwatch functionality
   let startTime = Date.now();
   let stopwatchInterval;
-  let paused = false;
-  const laps = [];
-  let lapStartTime = startTime;
 
   const displayStopwatch = () => {
-    const elapsedTime = paused
-      ? Date.now() - startTime
-      : Date.now() - lapStartTime;
+    const elapsedTime = Date.now() - startTime;
     const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
     const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
@@ -177,28 +172,17 @@ Time remaining: 0 seconds
     );
   };
 
-  const stopHandler = (str, key) => {
-    if (key.name === "return") {
-      if (!paused) {
-        clearInterval(stopwatchInterval);
-        laps.push(Date.now() - lapStartTime);
-        console.log(`Lap ${laps.length}: ${formatTime(laps[laps.length - 1])}`);
-        stopwatchInterval = null;
-        paused = true;
-      } else {
-        lapStartTime = Date.now() - laps.reduce((acc, curr) => acc + curr, 0);
-        stopwatchInterval = setInterval(displayStopwatch, 1000);
-        paused = false;
-      }
-    }
+  const stopStopwatch = () => {
+    clearInterval(stopwatchInterval);
+    process.stdin.removeListener("keypress", stopHandler);
+    console.log("Stopwatch stopped.");
+    process.exit(1);
   };
 
-  const formatTime = (elapsedTime) => {
-    const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
-    const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
-    const milliseconds = elapsedTime % 1000;
-    return `${hours}h ${minutes}m ${seconds}s ${milliseconds}ms`;
+  const stopHandler = (str, key) => {
+    if (key.name === "return") {
+      stopStopwatch();
+    }
   };
 
   // Start displaying stopwatch every second
