@@ -4,7 +4,8 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import readline from "readline";
-import { exec } from "child_process";
+import notifier from "node-notifier";
+import { execSync } from "child_process";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -75,6 +76,7 @@ if (!condition) {
   const startTimer = () => {
     const endTime = Date.now() + timeValuePassed;
     const displayCountdown = () => {
+      clearInterval(displayCountdownInterval);
       const remainingTime = endTime - Date.now();
       const secondsRemaining = Math.ceil(remainingTime / 1000);
 
@@ -87,6 +89,8 @@ Time remaining:  ${secondsRemaining} Seconds
       if (secondsRemaining > 0) {
         displayCountdownInterval = setInterval(displayCountdown, 500);
       } else if (secondsRemaining <= 0) {
+        clearInterval(displayCountdownInterval);
+        console.log("ran");
         console.clear();
         console.log(`
 Timer set for ${time} ${unit}
@@ -106,7 +110,6 @@ Time remaining: 0 seconds
           icon: icon, // Path to icon file
           contentImage: icon, // Same as icon
         });
-        // clearInterval(displayCountdownInterval);
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
           if (snoozeMatch) {
@@ -125,16 +128,20 @@ Time remaining: 0 seconds
                 break;
             }
             console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
-            // Execute the command to set a new timer
+
             const command = `c -t ${snoozeTime}${snoozeUnit}`;
-            exec(command, (error, stdout, stderr) => {
-              if (error) {
-                console.error(`Error executing command: ${error}`);
-                return;
+
+            const runCommand = (command) => {
+              try {
+                execSync(`${command}`, { stdio: "inherit" });
+              } catch (error) {
+                console.log(`Failed to Excute Command ${command}`);
+                process.exit(1);
               }
-              console.log(stdout);
-              rl.close();
-            });
+            };
+
+            runCommand(command);
+
             rl.close();
           } else {
             console.log("Invalid snooze duration format. Snooze not applied.");
@@ -143,7 +150,6 @@ Time remaining: 0 seconds
         };
 
         rl.question("Snooze Timer for: ", handleSnoozeInput);
-        rl.close();
       }
     };
     displayCountdown();
