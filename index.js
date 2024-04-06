@@ -6,6 +6,7 @@ import { fileURLToPath } from "url";
 import readline from "readline";
 import notifier from "node-notifier";
 import { execSync } from "child_process";
+import sound from "sound-play";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -161,6 +162,8 @@ Time remaining: 0 seconds
           icon: icon, // Path to icon file
           contentImage: icon, // Same as icon
         });
+        sound.play(soundPath);
+
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
           if (snoozeMatch) {
