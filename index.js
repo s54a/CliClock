@@ -10,14 +10,22 @@ import { execSync } from "child_process";
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Command line arguments
-const [, , condition, value] = process.argv;
+const [, , arg, value] = process.argv;
 
 const rl = readline.createInterface({
   input: process.stdin,
   output: process.stdout,
 });
 
-if (!condition) {
+// Extracting time and unit from value
+const time = parseInt(arg);
+
+if (time <= 0) {
+  console.error("Time must be a Positive Value.");
+  process.exit(1);
+}
+
+if (!arg) {
   const displayTime = () => {
     const now = new Date();
     const hours = String(now.getHours()).padStart(2, "0");
@@ -31,15 +39,56 @@ if (!condition) {
   };
   // Calling displayTime() initially and then updating every millisecond
   setInterval(displayTime, 1000);
-} else if (condition === "-t") {
-  if (!value) {
-    console.error("Please Enter a Value");
+} else if (arg === "-s") {
+  if (value) {
+    console.error("You don't have to pass a value with this flag");
     process.exit(1);
   }
 
-  // Extracting time and unit from value
-  const time = parseInt(value);
-  const unitMatch = value.match(/[a-zA-Z]+/);
+  // Stopwatch functionality
+  let startTime = Date.now();
+  let stopwatchInterval;
+
+  const displayStopwatch = () => {
+    const elapsedTime = Date.now() - startTime;
+    const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
+    const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
+    const milliseconds = elapsedTime % 1000;
+    console.clear();
+    console.log(
+      `Elapsed time: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms`
+    );
+  };
+
+  const stopStopwatch = () => {
+    clearInterval(stopwatchInterval);
+    process.stdin.removeListener("keypress", stopHandler);
+    console.log("Stopwatch stopped.");
+    process.exit(1);
+  };
+
+  const stopHandler = (str, key) => {
+    if (key.name === "return") {
+      stopStopwatch();
+    }
+  };
+
+  // Start displaying stopwatch every second
+  stopwatchInterval = setInterval(displayStopwatch, 1000);
+
+  // Listen for "keypress" event on stdin
+  process.stdin.setEncoding("utf8");
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.on("keypress", stopHandler);
+} else if (arg === "-h") {
+  if (value) {
+    console.error("You don't have to pass a value with this flag");
+    process.exit(1);
+  }
+} else if (time) {
+  const unitMatch = arg.match(/[a-zA-Z]+/);
   const unit = unitMatch ? unitMatch[0] : null;
 
   if (isNaN(time)) {
@@ -49,6 +98,10 @@ if (!condition) {
 
   if (!unit) {
     console.error("Invalid time format.");
+    process.exit(1);
+  }
+  if (value) {
+    console.error("You don't need pass any Arguments after Time");
     process.exit(1);
   }
 
@@ -104,9 +157,8 @@ Time remaining: 0 seconds
         notifier.notify({
           title: "Timer Expired",
           message: `Timer set for ${time}${unit} has expired.`,
-          // sound: true, // Enable sound
+          sound: false, // Enable sound
           wait: true, // Wait for notification to be dismissed
-          sound: soundPath, // Path to custom sound file
           icon: icon, // Path to icon file
           contentImage: icon, // Same as icon
         });
@@ -129,7 +181,7 @@ Time remaining: 0 seconds
             }
             console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
 
-            const command = `c -t ${snoozeTime}${snoozeUnit}`;
+            const command = `t ${snoozeTime}${snoozeUnit}`;
 
             const runCommand = (command) => {
               try {
@@ -156,55 +208,8 @@ Time remaining: 0 seconds
   };
 
   startTimer();
-} else if (condition === "-s") {
-  if (value) {
-    console.error("You don't have to pass a value with this flag");
-    process.exit(1);
-  }
-
-  // Stopwatch functionality
-  let startTime = Date.now();
-  let stopwatchInterval;
-
-  const displayStopwatch = () => {
-    const elapsedTime = Date.now() - startTime;
-    const hours = Math.floor(elapsedTime / (1000 * 60 * 60));
-    const minutes = Math.floor((elapsedTime % (1000 * 60 * 60)) / (1000 * 60));
-    const seconds = Math.floor((elapsedTime % (1000 * 60)) / 1000);
-    const milliseconds = elapsedTime % 1000;
-    console.clear();
-    console.log(
-      `Elapsed time: ${hours}h ${minutes}m ${seconds}s ${milliseconds}ms`
-    );
-  };
-
-  const stopStopwatch = () => {
-    clearInterval(stopwatchInterval);
-    process.stdin.removeListener("keypress", stopHandler);
-    console.log("Stopwatch stopped.");
-    process.exit(1);
-  };
-
-  const stopHandler = (str, key) => {
-    if (key.name === "return") {
-      stopStopwatch();
-    }
-  };
-
-  // Start displaying stopwatch every second
-  stopwatchInterval = setInterval(displayStopwatch, 1000);
-
-  // Listen for "keypress" event on stdin
-  process.stdin.setEncoding("utf8");
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.on("keypress", stopHandler);
-} else if (condition === "-h") {
-  if (value) {
-    console.error("You don't have to pass a value with this flag");
-    process.exit(1);
-  }
 } else {
-  console.error(`Invalid option: ${condition}`);
+  const [, , ...arg] = process.argv;
+  console.error(`Invalid option: ${arg}`);
   process.exit(1);
 }
