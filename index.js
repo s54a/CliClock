@@ -143,7 +143,6 @@ Time remaining:  ${secondsRemaining} Seconds
         displayCountdownInterval = setInterval(displayCountdown, 500);
       } else if (secondsRemaining <= 0) {
         clearInterval(displayCountdownInterval);
-        console.log("ran");
         console.clear();
         console.log(`
 Timer set for ${time} ${unit}
