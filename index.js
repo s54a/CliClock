@@ -26,6 +26,30 @@ if (time <= 0) {
   process.exit(1);
 }
 
+// let stopwatchInterval;
+let interval;
+
+function stop() {
+  const stop = () => {
+    clearInterval(interval);
+    process.stdin.removeListener("keypress", stopHandler);
+    console.log("CLI Clock Stopped.");
+    process.exit(1);
+  };
+
+  const stopHandler = (str, key) => {
+    if (key.name === "return") {
+      stop();
+    }
+  };
+
+  // Listen for "keypress" event on stdin
+  process.stdin.setEncoding("utf8");
+  process.stdin.setRawMode(true);
+  process.stdin.resume();
+  process.stdin.on("keypress", stopHandler);
+}
+
 if (!arg) {
   const displayTime = () => {
     const now = new Date();
@@ -40,6 +64,7 @@ if (!arg) {
   };
   // Calling displayTime() initially and then updating every millisecond
   setInterval(displayTime, 1000);
+  stop();
 } else if (arg === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
@@ -48,7 +73,6 @@ if (!arg) {
 
   // Stopwatch functionality
   let startTime = Date.now();
-  let stopwatchInterval;
 
   const displayStopwatch = () => {
     const elapsedTime = Date.now() - startTime;
@@ -62,32 +86,17 @@ if (!arg) {
     );
   };
 
-  const stopStopwatch = () => {
-    clearInterval(stopwatchInterval);
-    process.stdin.removeListener("keypress", stopHandler);
-    console.log("Stopwatch stopped.");
-    process.exit(1);
-  };
-
-  const stopHandler = (str, key) => {
-    if (key.name === "return") {
-      stopStopwatch();
-    }
-  };
-
   // Start displaying stopwatch every second
-  stopwatchInterval = setInterval(displayStopwatch, 1000);
+  interval = setInterval(displayStopwatch, 1000);
 
-  // Listen for "keypress" event on stdin
-  process.stdin.setEncoding("utf8");
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.on("keypress", stopHandler);
+  stop();
 } else if (arg === "-h") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
     process.exit(1);
   }
+  console.log("test");
+  stop();
 } else if (time) {
   const unitMatch = arg.match(/[a-zA-Z]+/);
   const unit = unitMatch ? unitMatch[0] : null;
@@ -125,12 +134,12 @@ if (!arg) {
       process.exit(1);
   }
 
-  let displayCountdownInterval;
+  // let displayCountdownInterval;
 
   const startTimer = () => {
     const endTime = Date.now() + timeValuePassed;
     const displayCountdown = () => {
-      clearInterval(displayCountdownInterval);
+      clearInterval(interval);
       const remainingTime = endTime - Date.now();
       const secondsRemaining = Math.ceil(remainingTime / 1000);
 
@@ -141,9 +150,9 @@ Time remaining:  ${secondsRemaining} Seconds
       `);
 
       if (secondsRemaining > 0) {
-        displayCountdownInterval = setInterval(displayCountdown, 500);
+        interval = setInterval(displayCountdown, 500);
       } else if (secondsRemaining <= 0) {
-        clearInterval(displayCountdownInterval);
+        clearInterval(interval);
         console.clear();
         console.log(`
 Timer set for ${time} ${unit}
@@ -210,6 +219,8 @@ Time remaining: 0 seconds
   };
 
   startTimer();
+
+  stop();
 } else {
   const [, , ...arg] = process.argv;
   console.error(`Invalid option: ${arg}`);
