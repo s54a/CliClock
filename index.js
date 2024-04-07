@@ -170,8 +170,6 @@ Time remaining: 0 seconds
           icon: icon, // Path to icon file
           contentImage: icon, // Same as icon
         });
-        // Play sound when the timer expires
-        sound.play(soundPath);
 
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
@@ -197,7 +195,6 @@ Time remaining: 0 seconds
             const runCommand = (command) => {
               try {
                 execSync(`${command}`, { stdio: "inherit" });
-                sound.stop(soundPath);
               } catch (error) {
                 console.log(`Failed to Excute Command ${command}`);
                 process.exit();
