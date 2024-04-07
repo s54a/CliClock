@@ -23,7 +23,7 @@ const time = parseInt(arg);
 
 if (time <= 0) {
   console.error("Time must be a Positive Value.");
-  process.exit(1);
+  process.exit();
 }
 
 // let stopwatchInterval;
@@ -34,7 +34,7 @@ function stop() {
     clearInterval(interval);
     process.stdin.removeListener("keypress", stopHandler);
     console.log("CLI Clock Stopped.");
-    process.exit(1);
+    process.exit();
   };
 
   const stopHandler = (str, key) => {
@@ -68,7 +68,7 @@ if (!arg) {
 } else if (arg === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
-    process.exit(1);
+    process.exit();
   }
 
   // Stopwatch functionality
@@ -93,7 +93,7 @@ if (!arg) {
 } else if (arg === "-h") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
-    process.exit(1);
+    process.exit();
   }
   console.log("test");
   stop();
@@ -103,16 +103,16 @@ if (!arg) {
 
   if (isNaN(time)) {
     console.error("Passed Value must be a number.");
-    process.exit(1);
+    process.exit();
   }
 
   if (!unit) {
     console.error("Invalid time format.");
-    process.exit(1);
+    process.exit();
   }
   if (value) {
     console.error("You don't need pass any Arguments after Time");
-    process.exit(1);
+    process.exit();
   }
 
   let timeValuePassed;
@@ -131,7 +131,7 @@ if (!arg) {
       break;
     default:
       console.error("Invalid time unit.");
-      process.exit(1);
+      process.exit();
   }
 
   // let displayCountdownInterval;
@@ -162,7 +162,6 @@ Time remaining: 0 seconds
 
         const icon = path.join(__dirname, "timer-svgrepo-com.png");
         const soundPath = path.join(__dirname, "sound.mp3");
-        // Play sound when the timer expires
         notifier.notify({
           title: "Timer Expired",
           message: `Timer set for ${time}${unit} has expired.`,
@@ -171,6 +170,7 @@ Time remaining: 0 seconds
           icon: icon, // Path to icon file
           contentImage: icon, // Same as icon
         });
+        // Play sound when the timer expires
         sound.play(soundPath);
 
         const handleSnoozeInput = (answer) => {
@@ -197,9 +197,10 @@ Time remaining: 0 seconds
             const runCommand = (command) => {
               try {
                 execSync(`${command}`, { stdio: "inherit" });
+                sound.stop(soundPath);
               } catch (error) {
                 console.log(`Failed to Excute Command ${command}`);
-                process.exit(1);
+                process.exit();
               }
             };
 
@@ -224,5 +225,5 @@ Time remaining: 0 seconds
 } else {
   const [, , ...arg] = process.argv;
   console.error(`Invalid option: ${arg}`);
-  process.exit(1);
+  process.exit();
 }
