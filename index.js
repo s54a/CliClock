@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import readline from "readline";
 import notifier from "node-notifier";
 import { execSync } from "child_process";
-import sound from "sound-play";
+import { play, stop } from "./soundPlay.js";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -29,8 +29,8 @@ if (time <= 0) {
 // let stopwatchInterval;
 let interval;
 
-function stop() {
-  const stop = () => {
+function exitCliClock() {
+  const exit = () => {
     clearInterval(interval);
     process.stdin.removeListener("keypress", stopHandler);
     console.log("CLI Clock Stopped.");
@@ -39,7 +39,7 @@ function stop() {
 
   const stopHandler = (str, key) => {
     if (key.name === "return") {
-      stop();
+      exit();
     }
   };
 
@@ -64,7 +64,7 @@ if (!arg) {
   };
   // Calling displayTime() initially and then updating every millisecond
   setInterval(displayTime, 1000);
-  stop();
+  exitCliClock();
 } else if (arg === "-s") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
@@ -89,14 +89,14 @@ if (!arg) {
   // Start displaying stopwatch every second
   interval = setInterval(displayStopwatch, 1000);
 
-  stop();
+  exitCliClock();
 } else if (arg === "-h") {
   if (value) {
     console.error("You don't have to pass a value with this flag");
     process.exit();
   }
   console.log("test");
-  stop();
+  exitCliClock();
 } else if (time) {
   const unitMatch = arg.match(/[a-zA-Z]+/);
   const unit = unitMatch ? unitMatch[0] : null;
@@ -171,6 +171,8 @@ Time remaining: 0 seconds
           contentImage: icon, // Same as icon
         });
 
+        play(soundPath);
+
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
           if (snoozeMatch) {
@@ -218,7 +220,7 @@ Time remaining: 0 seconds
 
   startTimer();
 
-  stop();
+  exitCliClock();
 } else {
   const [, , ...arg] = process.argv;
   console.error(`Invalid option: ${arg}`);
