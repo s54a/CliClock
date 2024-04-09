@@ -6,7 +6,7 @@ import { fileURLToPath } from "url";
 import readline from "readline";
 import notifier from "node-notifier";
 import { execSync } from "child_process";
-import { play, stop } from "./soundPlay.js";
+import { spawn } from "child_process";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -134,8 +134,6 @@ if (!arg) {
       process.exit();
   }
 
-  // let displayCountdownInterval;
-
   const startTimer = () => {
     const endTime = Date.now() + timeValuePassed;
     const displayCountdown = () => {
@@ -171,7 +169,28 @@ Time remaining: 0 seconds
           contentImage: icon, // Same as icon
         });
 
-        play(soundPath);
+        // Path to your audio file
+        const audioFile = path.join(__dirname, "./audio.mp3");
+
+        const vlcPath = "C:/Program Files/VideoLAN/VLC/vlc.exe"; // Example path for Windows, adjust for your system
+
+        let playerProcess;
+
+        // Function to play sound
+        function playSound(audioFile) {
+          // Spawn the VLC player process
+          playerProcess = spawn(vlcPath, ["--intf", "dummy", audioFile]);
+        }
+
+        // Function to stop sound playback
+        function stopSound() {
+          if (playerProcess) {
+            // Send a SIGTERM signal to terminate the process
+            playerProcess.kill("SIGTERM");
+          }
+        }
+
+        playSound(audioFile);
 
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
@@ -190,6 +209,7 @@ Time remaining: 0 seconds
                 snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
                 break;
             }
+            stopSound();
             console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
 
             const command = `t ${snoozeTime}${snoozeUnit}`;
