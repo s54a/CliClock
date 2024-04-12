@@ -7,6 +7,7 @@ import readline from "readline";
 import notifier from "node-notifier";
 import { execSync } from "child_process";
 import { spawn } from "child_process";
+import inquirer from "inquirer";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -23,31 +24,27 @@ const time = parseInt(arg);
 
 if (time <= 0) {
   console.error("Time must be a Positive Value.");
-  process.exit();
+  process.exit(1);
 }
 
-// let stopwatchInterval;
 let interval;
 
 function exitCliClock() {
-  const exit = () => {
-    clearInterval(interval);
-    process.stdin.removeListener("keypress", stopHandler);
-    console.log("CLI Clock Stopped.");
-    process.exit();
-  };
-
-  const stopHandler = (str, key) => {
-    if (key.name === "return") {
-      exit();
+  const stopHandler = (key) => {
+    if (key === "\u001B") {
+      // Escape key
+      clearInterval(interval);
+      console.log("CLI Clock Stopped.");
+      process.stdin.removeListener("data", stopHandler); // Remove the event listener
+      process.exit();
     }
   };
 
   // Listen for "keypress" event on stdin
-  process.stdin.setEncoding("utf8");
   process.stdin.setRawMode(true);
   process.stdin.resume();
-  process.stdin.on("keypress", stopHandler);
+  process.stdin.setEncoding("utf8");
+  process.stdin.on("data", stopHandler);
 }
 
 if (!arg) {
@@ -95,7 +92,9 @@ if (!arg) {
     console.error("You don't have to pass a value with this flag");
     process.exit();
   }
+
   console.log("test");
+
   exitCliClock();
 } else if (time) {
   const unitMatch = arg.match(/[a-zA-Z]+/);
@@ -115,7 +114,131 @@ if (!arg) {
     process.exit();
   }
 
+  const configFilePath = path.join(__dirname, "config.json");
+
+  function findExecutablePath(possiblePaths) {
+    // Find the first existing path
+    return possiblePaths.find((path) => fs.existsSync(path));
+  }
+
+  function getVLCPath() {
+    let vlcPath;
+    // Determine the VLC executable path based on the user's operating system
+    if (process.platform === "win32") {
+      // Windows paths
+      const possibleWindowsPaths = [
+        "C:/Program Files/VideoLAN/VLC/vlc.exe", // Default installation path
+        "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe", // Alternative installation path for 32-bit systems
+        // Add more possible paths here if needed
+      ];
+      vlcPath = findExecutablePath(possibleWindowsPaths);
+    } else if (process.platform === "darwin") {
+      // macOS paths
+      const possibleMacPaths = [
+        "/Applications/VLC.app/Contents/MacOS/VLC", // Default installation path
+        "/Applications/VLC.app/Contents/MacOS/VLC/Contents/MacOS/VLC", // Alternative installation path
+        // Add more possible paths here if needed
+      ];
+      vlcPath = findExecutablePath(possibleMacPaths);
+    } else if (process.platform === "linux") {
+      // Linux paths
+      const possibleLinuxPaths = [
+        "/usr/bin/vlc", // Default path on many distributions
+        "/usr/local/bin/vlc", // Common alternative path
+        "/snap/bin/vlc", // Path for Snap installations
+        "/var/lib/flatpak/exports/bin/vlc", // Path for Flatpak installations
+        // Add more possible paths here if needed
+      ];
+      vlcPath = findExecutablePath(possibleLinuxPaths);
+    } else {
+      console.error("Unsupported operating system");
+      process.exit(1);
+    }
+
+    const configFilePath = path.join(__dirname, "config.json");
+
+    // Function to read VLC path from config file
+    function readVLCPathFromConfigFile() {
+      try {
+        const configFileData = fs.readFileSync(configFilePath, "utf8");
+        const config = JSON.parse(configFileData);
+        return config.vlcPath;
+      } catch (error) {
+        return null; // Return null if config file doesn't exist or is invalid
+      }
+    }
+
+    vlcPath = readVLCPathFromConfigFile();
+
+    if (!vlcPath) {
+      console.clear();
+      console.error(
+        `
+What has happened is:
+
+When the Timer Ends it Plays an Audio.
+For which it uses VlC Media Player.
+And the Guessed Paths didn't work so you can enter a Path for VLC on your System
+
+Example: "C:/Program Files/VideoLAN/VLC/vlc.exe"
+
+If you answer "no" it will start the timer but won't play any sound 
+
+So please specify the path to the VLC executable.
+
+`
+      );
+      function promptForVLCPath() {
+        return inquirer
+          .prompt({
+            type: "input",
+            name: "vlcPath",
+            message: "Enter the path to VLC executable: ",
+            validate: (input) => {
+              if (input.toLowerCase() === "no") {
+                return true;
+              } else if (!fs.existsSync(input)) {
+                return "Invalid VLC executable path.";
+              }
+              return true;
+            },
+          })
+          .then((answer) => {
+            if (answer.vlcPath.toLowerCase() === "no") {
+              return "no";
+            } else if (!fs.existsSync(answer.vlcPath)) {
+              console.error("Invalid VLC executable path.");
+              return promptForVLCPath(); // Re-prompt if path is invalid
+            }
+            return answer.vlcPath;
+          });
+      }
+
+      vlcPath = promptForVLCPath();
+    }
+
+    return vlcPath;
+  }
+
+  const vlcPath = await getVLCPath();
+
+  // Function to save VLC path to config file
+  function saveVLCPathToConfigFile(vlcPath) {
+    const config = { vlcPath };
+    fs.writeFileSync(configFilePath, JSON.stringify(config));
+  }
+
+  if (vlcPath === "no") {
+    console.log("\nVLC path not provided");
+    console.log("\nSound won't Play when the Timer Ends");
+    saveVLCPathToConfigFile(vlcPath);
+  } else {
+    console.log("VLC path entered:", vlcPath);
+    saveVLCPathToConfigFile(vlcPath);
+  }
+
   let timeValuePassed;
+
   switch (unit.toLocaleLowerCase()) {
     case "m":
       timeValuePassed = time * 60 * 1000; // Convert minutes to milliseconds
@@ -169,10 +292,7 @@ Time remaining: 0 seconds
           contentImage: icon, // Same as icon
         });
 
-        // Path to your audio file
         const audioFile = path.join(__dirname, "./audio.mp3");
-
-        const vlcPath = "C:/Program Files/VideoLAN/VLC/vlc.exe"; // Example path for Windows, adjust for your system
 
         let playerProcess;
 
@@ -190,8 +310,9 @@ Time remaining: 0 seconds
           }
         }
 
-        playSound(audioFile);
-
+        if (vlcPath !== "no") {
+          playSound(audioFile);
+        }
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
           if (snoozeMatch) {
@@ -209,7 +330,9 @@ Time remaining: 0 seconds
                 snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
                 break;
             }
-            stopSound();
+            if (vlcPath !== "no") {
+              stopSound();
+            }
             console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
 
             const command = `t ${snoozeTime}${snoozeUnit}`;
@@ -218,7 +341,7 @@ Time remaining: 0 seconds
               try {
                 execSync(`${command}`, { stdio: "inherit" });
               } catch (error) {
-                console.log(`Failed to Excute Command ${command}`);
+                console.log(`Failed to Execute Command ${command}`);
                 process.exit();
               }
             };
@@ -238,9 +361,13 @@ Time remaining: 0 seconds
     displayCountdown();
   };
 
-  startTimer();
-
-  exitCliClock();
+  if (vlcPath) {
+    startTimer();
+    exitCliClock();
+  } else {
+    console.log("VLC path not found. Exiting...");
+    process.exit();
+  }
 } else {
   const [, , ...arg] = process.argv;
   console.error(`Invalid option: ${arg}`);

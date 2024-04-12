@@ -35,6 +35,7 @@
   },
   "homepage": "https://github.com/s54a/CliClock#readme",
   "dependencies": {
+    "inquirer": "^9.2.17",
     "node-notifier": "^10.0.1"
   }
 }
