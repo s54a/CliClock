@@ -29,6 +29,13 @@ if (time <= 0) {
 
 let interval;
 
+const configFilePath = path.join(__dirname, "config.json");
+// Function to save VLC path to config file
+function saveVLCPathToConfigFile(vlcPath) {
+  const config = { vlcPath };
+  fs.writeFileSync(configFilePath, JSON.stringify(config));
+}
+
 function exitCliClock() {
   const stopHandler = (key) => {
     if (key === "\u001B") {
@@ -114,8 +121,6 @@ if (!arg) {
     process.exit();
   }
 
-  const configFilePath = path.join(__dirname, "config.json");
-
   function findExecutablePath(possiblePaths) {
     // Find the first existing path
     return possiblePaths.find((path) => fs.existsSync(path));
@@ -154,8 +159,6 @@ if (!arg) {
       console.error("Unsupported operating system");
       process.exit(1);
     }
-
-    const configFilePath = path.join(__dirname, "config.json");
 
     // Function to read VLC path from config file
     function readVLCPathFromConfigFile() {
@@ -221,12 +224,6 @@ So please specify the path to the VLC executable.
   }
 
   const vlcPath = await getVLCPath();
-
-  // Function to save VLC path to config file
-  function saveVLCPathToConfigFile(vlcPath) {
-    const config = { vlcPath };
-    fs.writeFileSync(configFilePath, JSON.stringify(config));
-  }
 
   if (vlcPath === "no") {
     console.log("\nVLC path not provided");
@@ -368,6 +365,14 @@ Time remaining: 0 seconds
     console.log("VLC path not found. Exiting...");
     process.exit();
   }
+} else if (arg === "--new-path") {
+  saveVLCPathToConfigFile(value);
+  if (!fs.existsSync(value)) {
+    console.error("Invalid VLC executable path. Try Again");
+    process.exit(1);
+  }
+  console.log("New VLC path set:", `"${value}"`);
+  process.exit();
 } else {
   const [, , ...arg] = process.argv;
   console.error(`Invalid option: ${arg}`);
