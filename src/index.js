@@ -293,10 +293,6 @@ Time remaining: 0 seconds
           saveConfig();
         }
 
-        // const audioPath = path.join(__dirname, "../audio.mp3");
-        // config.audioPath = audioPath;
-        // saveConfig();
-
         let playerProcess;
 
         // Function to play sound
