@@ -27,16 +27,23 @@ const time = parseInt(arg);
 function saveConfig() {
   const configFilePath = path.resolve(__dirname, "config.js");
   const { vlcExePath, audioPath } = config;
+
   fs.writeFileSync(
     configFilePath,
     `const config = {
       vlcExePath:"${vlcExePath}",
-      //prettier-ignore
       audioPath: "${audioPath}",
 };
 
 export default config;\n`
   );
+}
+
+function fixWindowsPath(path) {
+  if (process.platform === "win32") {
+    return path.replace(/\\/g, "\\\\");
+  }
+  return path;
 }
 
 if (time <= 0) {
@@ -81,7 +88,7 @@ if (!arg) {
   exitCliClock();
 } else if (arg === "-s") {
   if (value) {
-    console.error("You don't have to pass a value with this flag");
+    console.error("You don't have to pass a value when you use Stopwatch");
     process.exit();
   }
 
@@ -106,7 +113,7 @@ if (!arg) {
   exitCliClock();
 } else if (arg === "-h") {
   if (value) {
-    console.error("You don't have to pass a value with this flag");
+    console.error("You don't have to pass a value when you want to see Help");
     process.exit();
   }
 
@@ -126,7 +133,11 @@ if (!arg) {
     console.error("Invalid time format.");
     process.exit(1);
   }
-  if (value) {
+
+  if (value === "-f") {
+    const funnySound = path.join(__dirname, "../sound.mp3");
+    config.audioPath = fixWindowsPath(funnySound);
+  } else if (value) {
     console.error("You don't need pass any Arguments after Time");
     process.exit(1);
   }
@@ -150,7 +161,6 @@ if (!arg) {
         vlcPath = findExecutablePath(possibleWindowsPaths);
         config.vlcExePath = vlcPath;
         saveConfig();
-        return;
       } else if (process.platform === "darwin") {
         // macOS paths
         const possibleMacPaths = [
@@ -161,7 +171,6 @@ if (!arg) {
         vlcPath = findExecutablePath(possibleMacPaths);
         config.vlcExePath = vlcPath;
         saveConfig();
-        return;
       } else if (process.platform === "linux") {
         // Linux paths
         const possibleLinuxPaths = [
@@ -174,7 +183,6 @@ if (!arg) {
         vlcPath = findExecutablePath(possibleLinuxPaths);
         config.vlcExePath = vlcPath;
         saveConfig();
-        return;
       } else {
         console.error(
           "Unsupported operating system. To play Sound you can add path for VLC.exe Manually using the --new-path."
@@ -182,7 +190,6 @@ if (!arg) {
         config.vlcExePath = "no";
         vlcPath = "no";
         saveConfig();
-        return;
       }
     }
 
@@ -267,6 +274,15 @@ So please specify the path to the VLC executable.
       const remainingTime = endTime - Date.now();
       const secondsRemaining = Math.ceil(remainingTime / 1000);
 
+      const runCommand = (command) => {
+        try {
+          execSync(`${command}`, { stdio: "inherit" });
+        } catch (error) {
+          console.log(`Failed to Execute Command ${command}`);
+          process.exit();
+        }
+      };
+
       console.clear();
       console.log(`
 Timer set for ${time} ${unit}
@@ -283,25 +299,6 @@ Timer set for ${time} ${unit}
 Time remaining: 0 seconds
       `);
         console.log("Timer ended!");
-
-        const icon = path.join(__dirname, "../timer-svgrepo-com.png");
-        notifier.notify({
-          title: "Timer Expired",
-          message: `Timer set for ${time}${unit} has expired.`,
-          sound: false, // Enable sound
-          wait: true, // Wait for notification to be dismissed
-          icon: icon, // Path to icon file
-          contentImage: icon, // Same as icon
-        });
-
-        if (!config.audioPath) {
-          // Set default audio path only if it hasn't been set by the user
-          const audioPath = path.join(__dirname, "../audio.mp3");
-          config.audioPath = audioPath;
-          saveConfig();
-        }
-
-        let playerProcess;
 
         // Function to play sound
         function playSound() {
@@ -321,15 +318,64 @@ Time remaining: 0 seconds
           }
         }
 
+        const icon = path.join(__dirname, "../timer-svgrepo-com.png");
+        notifier.notify({
+          title: "Timer Expired",
+          message: `Timer set for ${time}${unit} has expired.`,
+          sound: false, // Enable sound
+          wait: true, // Wait for notification to be dismissed
+          icon: icon, // Path to icon file
+          contentImage: icon, // Same as icon
+          actions: ["Snooze for 3 Minutes", "Stop Timer"],
+        });
+
+        notifier.on("dismissed", () => {
+          clearInterval(interval);
+          stopSound();
+          console.log("Timer Stopped");
+          process.exit();
+        });
+
+        // Buttons actions (lower-case):
+        notifier.on("snooze for 3 minutes", () => {
+          clearInterval(interval);
+          stopSound();
+          runCommand("t 3m");
+        });
+
+        notifier.on("stop timer", () => {
+          clearInterval(interval);
+          stopSound();
+          console.log("Timer Stopped");
+          process.exit();
+        });
+
+        if (!config.audioPath) {
+          // Set default audio path only if it hasn't been set by the user
+          const audioPath = path.join(__dirname, "../audio.mp3");
+          config.audioPath = fixWindowsPath(audioPath);
+          saveConfig();
+        } else if (config.audioPath === "undefined") {
+          // Set default audio path only if it hasn't been set by the user
+          const audioPath = path.join(__dirname, "../audio.mp3");
+          config.audioPath = fixWindowsPath(audioPath);
+          saveConfig();
+        }
+
+        let playerProcess;
+
         if (config.vlcExePath !== "no") {
           playSound();
         }
         const handleSnoozeInput = (answer) => {
           const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
+
           if (snoozeMatch) {
             const snoozeTime = parseInt(snoozeMatch[1]);
             const snoozeUnit = snoozeMatch[2].toLowerCase();
+
             let snoozeMilliseconds = 0;
+
             switch (snoozeUnit) {
               case "s":
                 snoozeMilliseconds = snoozeTime * 1000;
@@ -341,21 +387,13 @@ Time remaining: 0 seconds
                 snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
                 break;
             }
+
             if (config.vlcExePath !== "no") {
               stopSound();
             }
             console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
 
             const command = `t ${snoozeTime}${snoozeUnit}`;
-
-            const runCommand = (command) => {
-              try {
-                execSync(`${command}`, { stdio: "inherit" });
-              } catch (error) {
-                console.log(`Failed to Execute Command ${command}`);
-                process.exit();
-              }
-            };
 
             runCommand(command);
 
@@ -395,13 +433,6 @@ Time remaining: 0 seconds
   if (!fs.existsSync(value)) {
     console.error("\nInvalid audio file path. Try Again");
     process.exit(1);
-  }
-
-  function fixWindowsPath(path) {
-    if (process.platform === "win32") {
-      return path.replace(/\\/g, "\\\\");
-    }
-    return path;
   }
 
   config.audioPath = fixWindowsPath(value);
