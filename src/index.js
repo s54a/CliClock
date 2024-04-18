@@ -31,6 +31,7 @@ function saveConfig() {
     configFilePath,
     `const config = {
       vlcExePath:"${vlcExePath}",
+      //prettier-ignore
       audioPath: "${audioPath}",
 };
 
@@ -136,50 +137,57 @@ if (!arg) {
   }
 
   function getVLCPath() {
-    let vlcPath;
+    let vlcPath = config.vlcExePath;
     // Determine the VLC executable path based on the user's operating system
-    if (process.platform === "win32") {
-      // Windows paths
-      const possibleWindowsPaths = [
-        "C:/Program Files/VideoLAN/VLC/vlc.exe", // Default installation path
-        "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe", // Alternative installation path for 32-bit systems
-        // Add more possible paths here if needed
-      ];
-      vlcPath = findExecutablePath(possibleWindowsPaths);
-      config.vlcExePath = vlcPath;
-      saveConfig();
-    } else if (process.platform === "darwin") {
-      // macOS paths
-      const possibleMacPaths = [
-        "/Applications/VLC.app/Contents/MacOS/VLC", // Default installation path
-        "/Applications/VLC.app/Contents/MacOS/VLC/Contents/MacOS/VLC", // Alternative installation path
-        // Add more possible paths here if needed
-      ];
-      vlcPath = findExecutablePath(possibleMacPaths);
-      config.vlcExePath = vlcPath;
-      saveConfig();
-    } else if (process.platform === "linux") {
-      // Linux paths
-      const possibleLinuxPaths = [
-        "/usr/bin/vlc", // Default path on many distributions
-        "/usr/local/bin/vlc", // Common alternative path
-        "/snap/bin/vlc", // Path for Snap installations
-        "/var/lib/flatpak/exports/bin/vlc", // Path for Flatpak installations
-        // Add more possible paths here if needed
-      ];
-      vlcPath = findExecutablePath(possibleLinuxPaths);
-      config.vlcExePath = vlcPath;
-      saveConfig();
-    } else {
-      console.error(
-        "Unsupported operating system. To play Sound you can add path for VLC.exe Manually using the --new-path."
-      );
-      config.vlcExePath = "no";
-      saveConfig();
+    if (!config.vlcExePath) {
+      if (process.platform === "win32") {
+        // Windows paths
+        const possibleWindowsPaths = [
+          "C:/Program Files/VideoLAN/VLC/vlc.exe", // Default installation path
+          "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe", // Alternative installation path for 32-bit systems
+          // Add more possible paths here if needed
+        ];
+        vlcPath = findExecutablePath(possibleWindowsPaths);
+        config.vlcExePath = vlcPath;
+        saveConfig();
+        return;
+      } else if (process.platform === "darwin") {
+        // macOS paths
+        const possibleMacPaths = [
+          "/Applications/VLC.app/Contents/MacOS/VLC", // Default installation path
+          "/Applications/VLC.app/Contents/MacOS/VLC/Contents/MacOS/VLC", // Alternative installation path
+          // Add more possible paths here if needed
+        ];
+        vlcPath = findExecutablePath(possibleMacPaths);
+        config.vlcExePath = vlcPath;
+        saveConfig();
+        return;
+      } else if (process.platform === "linux") {
+        // Linux paths
+        const possibleLinuxPaths = [
+          "/usr/bin/vlc", // Default path on many distributions
+          "/usr/local/bin/vlc", // Common alternative path
+          "/snap/bin/vlc", // Path for Snap installations
+          "/var/lib/flatpak/exports/bin/vlc", // Path for Flatpak installations
+          // Add more possible paths here if needed
+        ];
+        vlcPath = findExecutablePath(possibleLinuxPaths);
+        config.vlcExePath = vlcPath;
+        saveConfig();
+        return;
+      } else {
+        console.error(
+          "Unsupported operating system. To play Sound you can add path for VLC.exe Manually using the --new-path."
+        );
+        config.vlcExePath = "no";
+        vlcPath = "no";
+        saveConfig();
+        return;
+      }
     }
 
     if (!vlcPath) {
-      console.clear();
+      // console.clear();
       console.error(
         `
 What has happened is:
@@ -368,34 +376,41 @@ Time remaining: 0 seconds
     startTimer();
     exitCliClock();
   } else {
-    console.log("VLC path not found. Exiting...");
+    console.log("\nVLC path not found. Exiting...");
     process.exit(1);
   }
   // Handle command line flags to set VLC and audio paths
 } else if (arg === "--vlc-path") {
   if (!fs.existsSync(value)) {
-    console.error("Invalid VLC executable path. Try Again");
+    console.error("\nInvalid VLC executable path. Try Again");
     process.exit(1);
   }
 
   config.vlcExePath = value;
   saveConfig();
 
-  console.log("New VLC path set:", `"${value}"`);
+  console.log("\nNew VLC path set:", `"${value}"`);
   process.exit();
 } else if (arg === "--audio-path") {
   if (!fs.existsSync(value)) {
-    console.error("Invalid audio file path. Try Again");
+    console.error("\nInvalid audio file path. Try Again");
     process.exit(1);
   }
 
-  config.audioPath = value;
+  function fixWindowsPath(path) {
+    if (process.platform === "win32") {
+      return path.replace(/\\/g, "\\\\");
+    }
+    return path;
+  }
+
+  config.audioPath = fixWindowsPath(value);
   saveConfig();
 
-  console.log("New audio path set:", `"${value}"`);
+  console.log("\nNew audio path set:", `"${value}"`);
   process.exit();
 } else {
   const [, , ...arg] = process.argv;
-  console.error(`Invalid option: ${arg}`);
+  console.error(`\nInvalid option: ${arg}`);
   process.exit();
 }
