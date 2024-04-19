@@ -93,12 +93,14 @@ if (!arg) {
     process.exit(1);
   }
 
+  setDefaultAudioPath();
   const vlcPath = await getVLCPath();
 
   const { totalSeconds, formattedTime } = parseTimeInput(arg);
 
   const startTimer = () => {
     const endTime = Date.now() + totalSeconds * 1000;
+
     const displayCountdown = () => {
       clearInterval(interval);
       const remainingTime = endTime - Date.now();
@@ -124,8 +126,6 @@ Time remaining: 0 seconds
         console.log("Timer ended!");
 
         notifyTimer(formattedTime, interval);
-
-        setDefaultAudioPath();
 
         if (config.vlcExePath !== "no") {
           playSound();
