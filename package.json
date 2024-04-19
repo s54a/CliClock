@@ -1,5 +1,5 @@
 {
-  "name": "cliclock",
+  "name": "@s54a/cliclock",
   "version": "1.0.0",
   "description": "Clock, Timer, StopWatch in Command Line",
   "main": "./index.js",

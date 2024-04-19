@@ -4,11 +4,16 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import readline from "readline";
-import notifier from "node-notifier";
-import { execSync } from "child_process";
-import { spawn } from "child_process";
-import inquirer from "inquirer";
 import config from "./config.js";
+import getVLCPath from "./getVLCPath.js";
+import saveConfig from "./saveConfig.js";
+import fixWindowsPath from "./fixWindowsPath.js";
+import parseTimeInput from "./parseTimeInput.js";
+import { playSound } from "./soundFunctions.js";
+import handleSnoozeInput from "./handleSnoozeInput.js";
+import notifyTimer from "./notifyTimer.js";
+import setDefaultAudioPath from "./setDefaultAudioPath.js";
+import exitCliClock from "./exitCliClock.js";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -20,55 +25,14 @@ const rl = readline.createInterface({
   output: process.stdout,
 });
 
-// Extracting time and unit from value
+let interval;
+
+// Extracting time from arg. If the first things is a number then it strips any alphabets and returns the numbers
 const time = parseInt(arg);
-
-// Function to save config to file
-function saveConfig() {
-  const configFilePath = path.resolve(__dirname, "config.js");
-  const { vlcExePath, audioPath } = config;
-
-  fs.writeFileSync(
-    configFilePath,
-    `const config = {
-      vlcExePath:"${vlcExePath}",
-      audioPath: "${audioPath}",
-};
-
-export default config;\n`
-  );
-}
-
-function fixWindowsPath(path) {
-  if (process.platform === "win32") {
-    return path.replace(/\\/g, "\\\\");
-  }
-  return path;
-}
 
 if (time <= 0) {
   console.error("Time must be a Positive Value.");
   process.exit(1);
-}
-
-let interval;
-
-function exitCliClock() {
-  const stopHandler = (key) => {
-    if (key === "\u001B") {
-      // Escape key
-      clearInterval(interval);
-      console.log("CLI Clock Stopped.");
-      process.stdin.removeListener("data", stopHandler); // Remove the event listener
-      process.exit();
-    }
-  };
-
-  // Listen for "keypress" event on stdin
-  process.stdin.setRawMode(true);
-  process.stdin.resume();
-  process.stdin.setEncoding("utf8");
-  process.stdin.on("data", stopHandler);
 }
 
 if (!arg) {
@@ -84,8 +48,8 @@ if (!arg) {
     );
   };
   // Calling displayTime() initially and then updating every millisecond
-  setInterval(displayTime, 1000);
-  exitCliClock();
+  setInterval(displayTime, 1);
+  exitCliClock(interval);
 } else if (arg === "-s") {
   if (value) {
     console.error("You don't have to pass a value when you use Stopwatch");
@@ -108,9 +72,9 @@ if (!arg) {
   };
 
   // Start displaying stopwatch every second
-  interval = setInterval(displayStopwatch, 1000);
+  interval = setInterval(displayStopwatch, 1);
 
-  exitCliClock();
+  exitCliClock(interval);
 } else if (arg === "-h") {
   if (value) {
     console.error("You don't have to pass a value when you want to see Help");
@@ -121,172 +85,31 @@ if (!arg) {
 
   process.exit();
 } else if (time) {
-  const unitMatch = arg.match(/[a-zA-Z]+/);
-  const unit = unitMatch ? unitMatch[0] : null;
-
-  if (isNaN(time)) {
-    console.error("Passed Value must be a number.");
-    process.exit(1);
-  }
-
-  if (!unit) {
-    console.error("Invalid time format.");
-    process.exit(1);
-  }
-
   if (value === "-f") {
     const funnySound = path.join(__dirname, "../sound.mp3");
     config.audioPath = fixWindowsPath(funnySound);
   } else if (value) {
-    console.error("You don't need pass any Arguments after Time");
+    console.error(`Wrong Argument "${value}"`);
     process.exit(1);
-  }
-
-  function findExecutablePath(possiblePaths) {
-    // Find the first existing path
-    return possiblePaths.find((path) => fs.existsSync(path));
-  }
-
-  function getVLCPath() {
-    let vlcPath = config.vlcExePath;
-    // Determine the VLC executable path based on the user's operating system
-    if (!config.vlcExePath) {
-      if (process.platform === "win32") {
-        // Windows paths
-        const possibleWindowsPaths = [
-          "C:/Program Files/VideoLAN/VLC/vlc.exe", // Default installation path
-          "C:/Program Files (x86)/VideoLAN/VLC/vlc.exe", // Alternative installation path for 32-bit systems
-          // Add more possible paths here if needed
-        ];
-        vlcPath = findExecutablePath(possibleWindowsPaths);
-        config.vlcExePath = vlcPath;
-        saveConfig();
-      } else if (process.platform === "darwin") {
-        // macOS paths
-        const possibleMacPaths = [
-          "/Applications/VLC.app/Contents/MacOS/VLC", // Default installation path
-          "/Applications/VLC.app/Contents/MacOS/VLC/Contents/MacOS/VLC", // Alternative installation path
-          // Add more possible paths here if needed
-        ];
-        vlcPath = findExecutablePath(possibleMacPaths);
-        config.vlcExePath = vlcPath;
-        saveConfig();
-      } else if (process.platform === "linux") {
-        // Linux paths
-        const possibleLinuxPaths = [
-          "/usr/bin/vlc", // Default path on many distributions
-          "/usr/local/bin/vlc", // Common alternative path
-          "/snap/bin/vlc", // Path for Snap installations
-          "/var/lib/flatpak/exports/bin/vlc", // Path for Flatpak installations
-          // Add more possible paths here if needed
-        ];
-        vlcPath = findExecutablePath(possibleLinuxPaths);
-        config.vlcExePath = vlcPath;
-        saveConfig();
-      } else {
-        console.error(
-          "Unsupported operating system. To play Sound you can add path for VLC.exe Manually using the --new-path."
-        );
-        config.vlcExePath = "no";
-        vlcPath = "no";
-        saveConfig();
-      }
-    }
-
-    if (!vlcPath) {
-      // console.clear();
-      console.error(
-        `
-What has happened is:
-
-When the Timer Ends it Plays an Audio.
-For which it uses VlC Media Player.
-And the Guessed Paths didn't work so you can enter a Path for VLC on your System
-
-Example: "C:/Program Files/VideoLAN/VLC/vlc.exe"
-
-If you answer "no" it will start the timer but won't play any sound 
-
-So please specify the path to the VLC executable.
-
-`
-      );
-      function promptForVLCPath() {
-        return inquirer
-          .prompt({
-            type: "input",
-            name: "vlcPath",
-            message: "Enter the path to VLC executable: ",
-            validate: (input) => {
-              if (input.toLowerCase() === "no") {
-                return true;
-              } else if (!fs.existsSync(input)) {
-                return "Invalid VLC executable path.";
-              }
-              return true;
-            },
-          })
-          .then((answer) => {
-            if (answer.vlcPath.toLowerCase() === "no") {
-              return "no";
-            } else if (!fs.existsSync(answer.vlcPath)) {
-              console.error("Invalid VLC executable path.");
-              return promptForVLCPath(); // Re-prompt if path is invalid
-            }
-            return answer.vlcPath;
-          });
-      }
-
-      vlcPath = promptForVLCPath();
-    }
-
-    config.vlcExePath = vlcPath;
-
-    return vlcPath;
   }
 
   const vlcPath = await getVLCPath();
 
-  let timeValuePassed;
-
-  switch (unit.toLocaleLowerCase()) {
-    case "m":
-      timeValuePassed = time * 60 * 1000; // Convert minutes to milliseconds
-      break;
-    case "s":
-      timeValuePassed = time * 1000; // Convert seconds to milliseconds
-      break;
-    case "h":
-      timeValuePassed = time * 60 * 60 * 1000; // Convert hours to milliseconds
-      break;
-    case "ms":
-      timeValuePassed = time; // Milliseconds
-      break;
-    default:
-      console.error("Invalid time unit.");
-      process.exit();
-  }
+  const { totalSeconds, formattedTime } = parseTimeInput(arg);
 
   const startTimer = () => {
-    const endTime = Date.now() + timeValuePassed;
+    const endTime = Date.now() + totalSeconds * 1000;
     const displayCountdown = () => {
       clearInterval(interval);
       const remainingTime = endTime - Date.now();
       const secondsRemaining = Math.ceil(remainingTime / 1000);
 
-      const runCommand = (command) => {
-        try {
-          execSync(`${command}`, { stdio: "inherit" });
-        } catch (error) {
-          console.log(`Failed to Execute Command ${command}`);
-          process.exit();
-        }
-      };
+      const secondsString = secondsRemaining === 1 ? "Second" : "Seconds";
 
       console.clear();
       console.log(`
-Timer set for ${time} ${unit}
-Time remaining:  ${secondsRemaining} Seconds
+Timer set for ${formattedTime}
+Time remaining:  ${secondsRemaining} ${secondsString}
       `);
 
       if (secondsRemaining > 0) {
@@ -295,114 +118,18 @@ Time remaining:  ${secondsRemaining} Seconds
         clearInterval(interval);
         console.clear();
         console.log(`
-Timer set for ${time} ${unit}
+Timer set for ${formattedTime} 
 Time remaining: 0 seconds
       `);
         console.log("Timer ended!");
 
-        // Function to play sound
-        function playSound() {
-          // Spawn the VLC player process
-          playerProcess = spawn(config.vlcExePath, [
-            "--intf",
-            "dummy",
-            config.audioPath,
-          ]);
-        }
+        notifyTimer(formattedTime, interval);
 
-        // Function to stop sound playback
-        function stopSound() {
-          if (playerProcess) {
-            // Send a SIGTERM signal to terminate the process
-            playerProcess.kill("SIGTERM");
-          }
-        }
-
-        const icon = path.join(__dirname, "../timer-svgrepo-com.png");
-        notifier.notify({
-          title: "Timer Expired",
-          message: `Timer set for ${time}${unit} has expired.`,
-          sound: false, // Enable sound
-          wait: true, // Wait for notification to be dismissed
-          icon: icon, // Path to icon file
-          contentImage: icon, // Same as icon
-          actions: ["Snooze for 3 Minutes", "Stop Timer"],
-        });
-
-        notifier.on("dismissed", () => {
-          clearInterval(interval);
-          stopSound();
-          console.log("Timer Stopped");
-          process.exit();
-        });
-
-        // Buttons actions (lower-case):
-        notifier.on("snooze for 3 minutes", () => {
-          clearInterval(interval);
-          stopSound();
-          runCommand("t 3m");
-        });
-
-        notifier.on("stop timer", () => {
-          clearInterval(interval);
-          stopSound();
-          console.log("Timer Stopped");
-          process.exit();
-        });
-
-        if (!config.audioPath) {
-          // Set default audio path only if it hasn't been set by the user
-          const audioPath = path.join(__dirname, "../audio.mp3");
-          config.audioPath = fixWindowsPath(audioPath);
-          saveConfig();
-        } else if (config.audioPath === "undefined") {
-          // Set default audio path only if it hasn't been set by the user
-          const audioPath = path.join(__dirname, "../audio.mp3");
-          config.audioPath = fixWindowsPath(audioPath);
-          saveConfig();
-        }
-
-        let playerProcess;
+        setDefaultAudioPath();
 
         if (config.vlcExePath !== "no") {
           playSound();
         }
-        const handleSnoozeInput = (answer) => {
-          const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
-
-          if (snoozeMatch) {
-            const snoozeTime = parseInt(snoozeMatch[1]);
-            const snoozeUnit = snoozeMatch[2].toLowerCase();
-
-            let snoozeMilliseconds = 0;
-
-            switch (snoozeUnit) {
-              case "s":
-                snoozeMilliseconds = snoozeTime * 1000;
-                break;
-              case "m":
-                snoozeMilliseconds = snoozeTime * 60 * 1000;
-                break;
-              case "h":
-                snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
-                break;
-            }
-
-            if (config.vlcExePath !== "no") {
-              stopSound();
-            }
-            console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
-
-            const command = `t ${snoozeTime}${snoozeUnit}`;
-
-            runCommand(command);
-
-            rl.close();
-          } else {
-            console.log("Invalid snooze duration format. Snooze not applied.");
-            rl.close();
-          }
-        };
 
         rl.question("Snooze Timer for: ", handleSnoozeInput);
       }
@@ -412,12 +139,11 @@ Time remaining: 0 seconds
 
   if (vlcPath) {
     startTimer();
-    exitCliClock();
+    exitCliClock(interval);
   } else {
     console.log("\nVLC path not found. Exiting...");
     process.exit(1);
   }
-  // Handle command line flags to set VLC and audio paths
 } else if (arg === "--vlc-path") {
   if (!fs.existsSync(value)) {
     console.error("\nInvalid VLC executable path. Try Again");
@@ -435,10 +161,17 @@ Time remaining: 0 seconds
     process.exit(1);
   }
 
-  config.audioPath = fixWindowsPath(value);
-  saveConfig();
+  if (value === "default-path") {
+    const audioPath = path.join(__dirname, "../audio.mp3");
+    config.audioPath = fixWindowsPath(audioPath);
+    saveConfig();
+    console.log("\nDefault-Path Set:", `"${value}"`);
+  } else {
+    config.audioPath = fixWindowsPath(value);
+    saveConfig();
+    console.log("\nNew audio Path Set:", `"${value}"`);
+  }
 
-  console.log("\nNew audio path set:", `"${value}"`);
   process.exit();
 } else {
   const [, , ...arg] = process.argv;
