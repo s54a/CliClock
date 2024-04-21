@@ -3,27 +3,21 @@
 import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
-import readline from "readline";
 import config from "./config.js";
 import getVLCPath from "./getVLCPath.js";
 import saveConfig from "./saveConfig.js";
-import fixWindowsPath from "./fixWindowsPath.js";
 import parseTimeInput from "./parseTimeInput.js";
 import { playSound } from "./soundFunctions.js";
 import handleSnoozeInput from "./handleSnoozeInput.js";
 import notifyTimer from "./notifyTimer.js";
 import setDefaultAudioPath from "./setDefaultAudioPath.js";
 import exitCliClock from "./exitCliClock.js";
+import rl from "./cliInterface.js";
 
 // Get current directory path
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Command line arguments
 const [, , arg, value] = process.argv;
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
 
 let interval;
 
@@ -87,14 +81,14 @@ if (!arg) {
 } else if (time) {
   if (value === "-f") {
     const funnySound = path.join(__dirname, "../sound.mp3");
-    config.audioPath = fixWindowsPath(funnySound);
+    config.audioPath = funnySound;
   } else if (value) {
     console.error(`Wrong Argument "${value}"`);
     process.exit(1);
   }
 
-  setDefaultAudioPath();
   const vlcPath = await getVLCPath();
+  setDefaultAudioPath();
 
   const { totalSeconds, formattedTime } = parseTimeInput(arg);
 
@@ -127,7 +121,7 @@ Time remaining: 0 seconds
 
         notifyTimer(formattedTime, interval);
 
-        if (config.vlcExePath !== "no") {
+        if (config.vlcExePath && config.vlcExePath.toLowerCase() !== "no") {
           playSound();
         }
 
@@ -135,11 +129,11 @@ Time remaining: 0 seconds
       }
     };
     displayCountdown();
+    exitCliClock(interval);
   };
 
   if (vlcPath) {
     startTimer();
-    exitCliClock(interval);
   } else {
     console.log("\nVLC path not found. Exiting...");
     process.exit(1);
@@ -156,18 +150,17 @@ Time remaining: 0 seconds
   console.log("\nNew VLC path set:", `"${value}"`);
   process.exit();
 } else if (arg === "--audio-path") {
-  if (!fs.existsSync(value)) {
-    console.error("\nInvalid audio file path. Try Again");
-    process.exit(1);
-  }
-
   if (value === "default-path") {
     const audioPath = path.join(__dirname, "../audio.mp3");
-    config.audioPath = fixWindowsPath(audioPath);
+    config.audioPath = audioPath;
     saveConfig();
-    console.log("\nDefault-Path Set:", `"${value}"`);
+    console.log("\nDefault Audio Path Set");
   } else {
-    config.audioPath = fixWindowsPath(value);
+    if (!fs.existsSync(value)) {
+      console.error("\nInvalid audio file path. Try Again");
+      process.exit(1);
+    }
+    config.audioPath = value;
     saveConfig();
     console.log("\nNew audio Path Set:", `"${value}"`);
   }

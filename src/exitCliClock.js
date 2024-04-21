@@ -3,8 +3,9 @@ function exitCliClock(interval) {
     if (key === "\u001B") {
       // Escape key
       clearInterval(interval);
-      console.log("CLI Clock Stopped.");
       process.stdin.removeListener("data", stopHandler); // Remove the event listener
+      process.stdin.pause(); // Pause stdin
+      console.log("CLI Clock Stopped.");
       process.exit();
     }
   };

@@ -41,7 +41,8 @@ export default function parseTimeInput(input) {
   });
 
   const formattedTime = formatTimeComponents(timeComponents);
-  return { totalSeconds, formattedTime };
+
+  return { totalSeconds, formattedTime, input };
 }
 
 function formatTimeComponents(components) {

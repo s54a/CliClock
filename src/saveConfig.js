@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import config from "./config.js";
+import fixWindowsPath from "./fixWindowsPath.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -10,11 +11,19 @@ function saveConfig() {
   const configFilePath = path.resolve(__dirname, "config.js");
   const { vlcExePath, audioPath } = config;
 
+  // Ensure vlcExePath and audioPath are defined before fixing their paths
+  const fixedVLCExePath = config.vlcExePath
+    ? fixWindowsPath(config.vlcExePath)
+    : "";
+  const fixedAudioPath = config.audioPath
+    ? fixWindowsPath(config.audioPath)
+    : "";
+
   fs.writeFileSync(
     configFilePath,
     `const config = {
-      vlcExePath:"${vlcExePath}",
-      audioPath: "${audioPath}",
+      vlcExePath: "${fixedVLCExePath}",
+      audioPath: "${fixedAudioPath}",
 };
 
 export default config;\n`

@@ -1,20 +1,26 @@
-// notifyTimer.js
-
 import path from "path";
 import { fileURLToPath } from "url";
 import notifier from "node-notifier";
 import { clearInterval } from "timers";
 import { stopSound } from "./soundFunctions.js";
 import runCommand from "./runCommand.js";
+import config from "./config.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+if (config.vlcExePath === "no") {
+  // Disable sound if VLC executable path is "no"
+  notifyTimer.soundEnabled = true;
+} else {
+  notifyTimer.soundEnabled = false;
+}
 
 export default function notifyTimer(formattedTime, interval) {
   const icon = path.join(__dirname, "../timer-svgrepo-com.png");
   notifier.notify({
     title: "Timer Expired",
     message: `Timer set for ${formattedTime} has expired.`,
-    sound: false, // Enable sound
+    sound: notifyTimer.soundEnabled, // Set sound based on config.vlcExePath
     wait: true, // Wait for notification to be dismissed
     icon: icon, // Path to icon file
     contentImage: icon, // Same as icon

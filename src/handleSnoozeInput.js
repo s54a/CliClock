@@ -1,41 +1,22 @@
-import readline from "readline";
 import { stopSound } from "./soundFunctions.js";
 import runCommand from "./runCommand.js";
 import config from "./config.js";
-
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout,
-});
+import rl from "./cliInterface.js";
+import parseTimeInput from "./parseTimeInput.js";
 
 const handleSnoozeInput = (answer) => {
-  const snoozeMatch = answer.match(/^(\d+)([smh])$/i);
+  const snoozeTimeInput = answer.trim(); // Trim any leading/trailing whitespace
+  const { totalSeconds, formattedTime, input } =
+    parseTimeInput(snoozeTimeInput);
 
-  if (snoozeMatch) {
-    const snoozeTime = parseInt(snoozeMatch[1]);
-    const snoozeUnit = snoozeMatch[2].toLowerCase();
-
-    let snoozeMilliseconds = 0;
-
-    switch (snoozeUnit) {
-      case "s":
-        snoozeMilliseconds = snoozeTime * 1000;
-        break;
-      case "m":
-        snoozeMilliseconds = snoozeTime * 60 * 1000;
-        break;
-      case "h":
-        snoozeMilliseconds = snoozeTime * 60 * 60 * 1000;
-        break;
-    }
-
+  if (totalSeconds > 0) {
     if (config.vlcExePath !== "no") {
       stopSound();
     }
 
-    console.log(`Snoozing for ${snoozeTime}${snoozeUnit}`);
+    console.log(`Snoozing for ${formattedTime}`);
 
-    const command = `t ${snoozeTime}${snoozeUnit}`;
+    const command = `t ${input}`;
 
     runCommand(command);
 

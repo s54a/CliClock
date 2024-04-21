@@ -1,4 +1,5 @@
 import fs from "fs";
+import chalk from "chalk";
 import inquirer from "inquirer";
 import saveConfig from "./saveConfig.js";
 import config from "./config.js";
@@ -56,22 +57,35 @@ function getVLCPath() {
 
   if (!vlcPath) {
     console.clear();
-    console.error(
-      `
-What has happened is:
 
-When the Timer Ends it Plays an Audio.
-For which it uses VlC Media Player.
-And the Guessed Paths didn't work so you can enter a Path for VLC on your System
-
-Example: "C:/Program Files/VideoLAN/VLC/vlc.exe"
-
-If you answer "no" it will start the timer but won't play any sound 
-
-So please specify the path to the VLC executable.
-
-`
+    // Explanation of the package and its functionality
+    console.error(chalk.yellow.bold("\nWelcome to CLI Clock Package!\n"));
+    console.log(
+      chalk.green(
+        "This package allows you to set timers and plays an audio file when the timer duration is over.\n"
+      )
     );
+
+    // Explanation of VLC executable path
+    console.log(chalk.blue.bold("How It Works:"));
+    console.log(
+      "When you run this package for the first time, it tries to locate VLC.exe to play the audio. It uses common paths for VLC.exe on Windows, macOS, and Linux, but sometimes VLC.exe might be stored in a different location on your device.\n"
+    );
+
+    // Prompt for VLC executable path
+    console.log(chalk.blue.bold("What to Do:"));
+    console.log(
+      "If the package can't find VLC.exe, that is why you are seeing this message. You can provide the path to VLC.exe on your device or enter 'no' if you don't want provide the path now and the Package will work but wont play the audio file when the timer ends there will be just Beep Sound.\n"
+    );
+    console.log(
+      "Example Path: " + chalk.cyan('"C:/Program Files/VideoLAN/VLC/vlc.exe"')
+    );
+    console.log(
+      "If you choose 'no', you can always provide the path for VLC.exe in the future using " +
+        chalk.cyan("'t --vlc-path 'path for VLC.exe'\"") +
+        "\n"
+    );
+
     function promptForVLCPath() {
       return inquirer
         .prompt({
@@ -82,18 +96,15 @@ So please specify the path to the VLC executable.
             if (input.toLowerCase() === "no") {
               return true;
             } else if (!fs.existsSync(input)) {
-              return "Invalid VLC executable path.";
+              console.error("Invalid VLC executable path.");
+              return promptForVLCPath();
             }
             return true;
           },
         })
         .then((answer) => {
-          if (answer.vlcPath.toLowerCase() === "no") {
-            return "no";
-          } else if (!fs.existsSync(answer.vlcPath)) {
-            console.error("Invalid VLC executable path.");
-            return promptForVLCPath(); // Re-prompt if path is invalid
-          }
+          config.vlcExePath = answer.vlcPath;
+          saveConfig();
           return answer.vlcPath;
         });
     }
