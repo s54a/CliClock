@@ -2,6 +2,7 @@ import path from "path";
 import { fileURLToPath } from "url";
 import notifier from "node-notifier";
 import { clearInterval } from "timers";
+import chalk from "chalk";
 import { stopSound } from "./soundFunctions.js";
 import runCommand from "./runCommand.js";
 import config from "./config.js";
@@ -30,7 +31,7 @@ export default function notifyTimer(formattedTime, interval) {
   notifier.on("dismissed", () => {
     clearInterval(interval);
     stopSound();
-    console.log("Timer Stopped");
+    console.log(chalk.yellow("Timer Stopped"));
     process.exit();
   });
 
@@ -44,7 +45,7 @@ export default function notifyTimer(formattedTime, interval) {
   notifier.on("stop timer", () => {
     clearInterval(interval);
     stopSound();
-    console.log("Timer Stopped");
+    console.log(chalk.red("Timer Stopped"));
     process.exit();
   });
 }

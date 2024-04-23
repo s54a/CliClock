@@ -9,7 +9,6 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 // Function to save config to file
 function saveConfig() {
   const configFilePath = path.resolve(__dirname, "config.js");
-  const { vlcExePath, audioPath } = config;
 
   // Ensure vlcExePath and audioPath are defined before fixing their paths
   const fixedVLCExePath = config.vlcExePath

@@ -47,7 +47,9 @@ function getVLCPath() {
       saveConfig();
     } else {
       console.error(
-        "Unsupported operating system. To play Sound you can add path for VLC.exe Manually using the --new-path."
+        chalk.red(
+          "Unsupported operating system. To play Sound you can add path for VLC.exe Manually using the --new-path."
+        )
       );
       config.vlcExePath = "no";
       vlcPath = "no";
@@ -96,7 +98,7 @@ function getVLCPath() {
             if (input.toLowerCase() === "no") {
               return true;
             } else if (!fs.existsSync(input)) {
-              console.error("Invalid VLC executable path.");
+              console.error(chalk.red("Invalid VLC executable path."));
               return promptForVLCPath();
             }
             return true;

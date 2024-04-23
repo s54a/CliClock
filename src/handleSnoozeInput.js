@@ -1,3 +1,4 @@
+import chalk from "chalk";
 import { stopSound } from "./soundFunctions.js";
 import runCommand from "./runCommand.js";
 import config from "./config.js";
@@ -14,7 +15,7 @@ const handleSnoozeInput = (answer) => {
       stopSound();
     }
 
-    console.log(`Snoozing for ${formattedTime}`);
+    console.log(chalk.green(`Snoozing for ${formattedTime}`));
 
     const command = `t ${input}`;
 
@@ -22,7 +23,9 @@ const handleSnoozeInput = (answer) => {
 
     rl.close();
   } else {
-    console.log("Invalid snooze duration format. Snooze not applied.");
+    console.log(
+      chalk.red("Invalid snooze duration format. Snooze not applied.")
+    );
     rl.close();
   }
 };

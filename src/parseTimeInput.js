@@ -1,9 +1,11 @@
+import chalk from "chalk";
+
 export default function parseTimeInput(input) {
   input = input.toLowerCase(); // Convert input to lowercase
   const matches = input.match(/(\d+)\s*(h|m|s)(\s|$)?/g);
   if (!matches) {
     console.error(
-      "Invalid time format. Please use the format like '1h42m30s'."
+      chalk.red("Invalid time format. Please use the format like '1h42m30s'.")
     );
     process.exit(1);
   }
@@ -15,7 +17,9 @@ export default function parseTimeInput(input) {
 
     const intValue = parseInt(value);
     if (isNaN(intValue)) {
-      console.error("Invalid time format. Please use numbers for time values.");
+      console.error(
+        chalk.red("Invalid time format. Please use numbers for time values.")
+      );
       process.exit(1);
     }
 
@@ -34,7 +38,9 @@ export default function parseTimeInput(input) {
         break;
       default:
         console.error(
-          "Invalid time format. Use 'h' for hours, 'm' for minutes, and 's' for seconds."
+          chalk.red(
+            "Invalid time format. Use 'h' for hours, 'm' for minutes, and 's' for seconds."
+          )
         );
         process.exit(1);
     }
