@@ -1,6 +1,6 @@
 {
   "name": "@s54a/cliclock",
-  "version": "3.0.0",
+  "version": "4.0.0",
   "description": "Clock, Timer, StopWatch in Command Line",
   "main": "./index.js",
   "type": "module",

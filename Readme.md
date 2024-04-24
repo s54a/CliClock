@@ -70,6 +70,20 @@ npx @s54a/cliclock
 
   Example: `t 10m` (for 10 minutes)
 
+  I have wasted a lot of timer on Regex so all these are correct inputs
+
+  ```bash
+  "1h 42 m 30 s"
+  "1h42m30s"
+  "1 h 42 m 30 s"
+  "1 m 30 s"
+  "1m 30s"
+  "1m 30 s"
+  "30 s"
+  "1h30 s"
+  " 1 h 30 s "
+  ```
+
 - To set a timer with a funny sound:
 
   ```bash
@@ -179,6 +193,14 @@ And in the push notification there is an option to _Snooze Timer for 3 Minutes_ 
 
 While in terminal it prompts you to snooze timer which uses the **Readline** Module.
 Input Time & Press Enter and it will restart Timer.
+
+So I the timer never stops if you want to stop it you will have to press **ESC** or **CTRL + C** on your Keyboard
+
+There is a bug or a little inconvenience in the Package when you snooze the timer and then if you try to exit the timer while it is running it takes almost 3 seconds to exit.
+
+I don't know why it happens.
+
+And I have tried to fix but it I can't there were a few fixes such just remove the function to exit and the user can exit by pressing CTRL + C.
 
 ## A few question you might ask
 

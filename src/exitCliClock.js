@@ -18,3 +18,16 @@ function exitCliClock(interval) {
 }
 
 export default exitCliClock;
+
+// function exitCliClock(interval) {
+//   console.log("Press 'Ctrl + C' to exit CLI Clock.");
+
+//   // Clear interval when the process exits
+//   process.on("SIGINT", () => {
+//     clearInterval(interval);
+//     console.log("CLI Clock Stopped.");
+//     process.exit();
+//   });
+// }
+
+// export default exitCliClock;
